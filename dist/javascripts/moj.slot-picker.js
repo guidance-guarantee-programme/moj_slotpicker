@@ -26,7 +26,7 @@
   };
 
   SlotPicker.prototype = {
-    
+
     defaults: {
       optionLimit: 3,
       singleUnavailableMsg: true,
@@ -44,7 +44,7 @@
 
     cacheEls: function($el) {
       this.$_el = $el;
-      
+
       this.$slotInputs = $('.SlotPicker-input', $el);
       this.$promoteHelp = $('.SlotPicker-promoteHelp', $el);
       this.$timeSlots = $('.SlotPicker-timeSlots', $el);
@@ -119,7 +119,7 @@
           demoted = $('.SlotPicker-choice:eq(' + (index - 1) + ')'),
           h = promoted.find('.SlotPicker-choiceInner').height() + parseInt(promoted.find('.SlotPicker-choiceInner').css('padding-top')),
           self = this;
-      
+
       var promote = function() {
         self.shiftSlot(index);
         self.processSlots();
@@ -128,7 +128,7 @@
       var transition = function() {
         return Modernizr.csstransitions ? 300 : 0;
       };
-      
+
       promoted.find('.SlotPicker-choiceContent').css('top', -h + 'px');
       demoted.find('.SlotPicker-choiceContent').css('top', h + 'px');
 
@@ -152,7 +152,7 @@
 
     getMonthPositions: function(dates) {
       var months = [], lastMonth, day, month;
-      
+
       for (day in dates) {
         month = moj.Helpers.dateFromIso(day).getMonth();
         if (month !== lastMonth) {
@@ -193,7 +193,7 @@
 
       return template({
         monthAbr: text.substr(0, 3),
-        monthRemaining: text.substr(3)
+        month: text
       });
     },
 
@@ -225,7 +225,7 @@
       this.settings.bookableDates = $.map(slots, function(s) {
         return s.substr(0, 10);
       });
-      
+
       for (i = 0; i < slots.length; i++) {
         day = this.splitDateAndSlot(slots[i])[0];
 
@@ -242,7 +242,7 @@
 
         previous = day;
       }
-      
+
       this.settings.bookableTimes = days;
     },
 
@@ -259,7 +259,7 @@
 
     chosenDaySelector: function(dateStr) {
       var bookingFrom, bookingTo, date;
-      
+
       if (moj.Helpers.dateBookable(dateStr, this.settings.bookableDates)) {
         return '#date-' + dateStr;
       }
@@ -267,7 +267,7 @@
       date = moj.Helpers.dateFromIso(dateStr);
       bookingFrom = moj.Helpers.dateFromIso(this.settings.bookableDates[0]);
       bookingTo = moj.Helpers.dateFromIso(this.settings.bookableDates[this.settings.bookableDates.length-1]);
-      
+
       if (date < this.settings.today) {
         return '.SlotPicker-day--past';
       } else {
@@ -326,7 +326,7 @@
           time = label.find('.SlotPicker-time').text(),
           duration = label.find('.SlotPicker-duration').text(),
           $slot = this.$choice.eq(index);
-      
+
       $slot.addClass('is-chosen');
       $slot.find('.SlotPicker-date').text(day);
       $slot.find('.SlotPicker-time').text(time + ', ' + duration);
@@ -337,7 +337,7 @@
     populateSlotInputs: function(index, chosen) {
       $('.SlotPicker-input', this.$_el).eq(index).val(chosen);
     },
-    
+
     processSlots: function() {
       var slots = this.settings.currentSlots,
           i, $slotEl;
@@ -369,7 +369,7 @@
     splitDateAndSlot: function(str) {
       var bits = str.split('-'),
           time = bits.splice(-2, 2).join('-');
-      
+
       return [bits.join('-'), time];
     },
 
@@ -394,7 +394,7 @@
 
     removeSlot: function(slot) {
       var pos = moj.Helpers.indexOf(this.settings.currentSlots, slot);
-      
+
       this.settings.currentSlots.splice(pos, 1);
       this.markDate(slot);
     },
@@ -405,7 +405,7 @@
 
     markDate: function(slot) {
       var day = this.splitDateAndSlot(slot)[0];
-      
+
       $('[data-date=' + day + ']', this.$_el)[~this.settings.currentSlots.join('-').indexOf(day) ? 'addClass' : 'removeClass']('is-chosen');
     },
 
@@ -475,7 +475,7 @@
           todayIso = moj.Helpers.formatIso(this.settings.today),
           end = moj.Helpers.dateFromIso(to),
           count = 1;
-      
+
       curDate = this.firstDayOfWeek(moj.Helpers.dateFromIso(from));
       end = this.lastDayOfWeek(this.lastDayOfMonth(end));
 
@@ -486,6 +486,8 @@
       while (curDate <= end) {
         curIso = moj.Helpers.formatIso(curDate);
 
+        var bookable = moj.Helpers.dateBookable(curDate, this.settings.bookableDates);
+
         row+= templateDate({
           date: curIso,
           day: curDate.getDate(),
@@ -493,7 +495,8 @@
           newMonth: curDate.getDate() === 1,
           monthIso: curIso.substr(0, 7),
           monthShort: this.settings.months[curDate.getMonth()].substr(0,3),
-          klass: moj.Helpers.dateBookable(curDate, this.settings.bookableDates) ? 'BookingCalendar-date--bookable' : 'BookingCalendar-date--unavailable'
+          klass: bookable ? 'BookingCalendar-date--bookable' : 'BookingCalendar-date--unavailable',
+          bookable: bookable
         });
 
         if (count === 7) {
@@ -507,7 +510,7 @@
         curDate.setDate(curDate.getDate() + 1);
         count++;
       }
-      
+
       return out;
     },
 
@@ -535,14 +538,14 @@
       var out = '',
           diff = end.getTime() - start.getTime(),
           duration = new Date(diff);
-      
+
       if (duration.getUTCHours()) {
         out+= duration.getUTCHours() + ' hr';
         if (duration.getUTCHours() > 1) {
           out+= 's';
         }
       }
-      
+
       if (duration.getMinutes()) {
         out+= ' ' + duration.getMinutes() + ' min';
         if (duration.getMinutes() > 1) {

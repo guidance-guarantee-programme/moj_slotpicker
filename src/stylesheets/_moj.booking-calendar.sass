@@ -33,7 +33,7 @@ table.BookingCalendar-dates
       color: $grey-3
       style: solid
       width: 0 0 1px 1px
-  
+
   td:last-child > div,
     border-right: 1px solid $grey-3
 
@@ -57,7 +57,7 @@ a.BookingCalendar-dateLink
 
   &.is-chosen
     overflow: hidden
-    
+
     &:after
       position: absolute
       content: ''
@@ -190,7 +190,15 @@ a.BookingCalendar-nav--next
     background-position: 100% 10px
     background-size: 30px
 
+.BookingCalendar-navShort
+  display: inline
+  @include media(desktop)
+    display: none
+
 .BookingCalendar-navFull
-  display: none
+  position: absolute
+  left: -9999em
   @include media(desktop)
     display: inline
+    left: auto
+    position: static

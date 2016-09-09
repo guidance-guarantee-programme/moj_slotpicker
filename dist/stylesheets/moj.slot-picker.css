@@ -225,11 +225,20 @@ a.BookingCalendar-nav--next {
       background-position: 100% 10px;
       background-size: 30px; } }
 
+.BookingCalendar-navShort {
+  display: inline; }
+  @media (min-width: 769px) {
+    .BookingCalendar-navShort {
+      display: none; } }
+
 .BookingCalendar-navFull {
-  display: none; }
+  position: absolute;
+  left: -9999em; }
   @media (min-width: 769px) {
     .BookingCalendar-navFull {
-      display: inline; } }
+      display: inline;
+      left: auto;
+      position: static; } }
 
 .SlotPicker-timeSlots {
   display: none; }
