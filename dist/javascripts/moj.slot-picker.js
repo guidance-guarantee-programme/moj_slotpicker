@@ -121,15 +121,14 @@
 
       if (!$activeChoice.length) return;
 
-      self.$timeSlots.fadeOut(300, function() {
-        var $cloned = self.$timeSlots.detach();
-        $cloned.insertBefore($activeChoice).hide().fadeIn(800);
+      self.$timeSlots.hide();
+      var $cloned = self.$timeSlots.detach();
+      $cloned.insertBefore($activeChoice).hide().fadeIn(800);
 
-        self.$timeSlots = $cloned;
-        self.$timeSlots.addClass('is-active');
+      self.$timeSlots = $cloned;
+      self.$timeSlots.addClass('is-active');
 
-        $activeChoice.addClass('is-clicked');
-      });
+      $activeChoice.addClass('is-clicked');
     },
 
     promoteSlot: function(slot) {
