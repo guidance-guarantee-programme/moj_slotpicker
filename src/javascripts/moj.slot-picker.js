@@ -20,7 +20,7 @@
   };
 
   SlotPicker.prototype = {
-    
+
     defaults: {
       optionLimit: 3,
       singleUnavailableMsg: true,
@@ -38,7 +38,7 @@
 
     cacheEls: function($el) {
       this.$_el = $el;
-      
+
       this.$slotInputs = $('.SlotPicker-input', $el);
       this.$promoteHelp = $('.SlotPicker-promoteHelp', $el);
       this.$timeSlots = $('.SlotPicker-timeSlots', $el);
@@ -64,6 +64,7 @@
         self.activateNextOption();
         self.disableCheckboxes(self.limitReached());
         self.togglePromoteHelp();
+        self.deselectDays();
       });
 
       this.$_el.on('click', '.SlotPicker-icon--remove', function(e) {
@@ -107,13 +108,29 @@
       });
     },
 
+    moveTimeSlotsToChoice: function() {
+      var self = this;
+      var $activeChoice = $('.SlotPicker-choice.is-active');
+
+      if (!$activeChoice.length) { return; }
+
+      self.$timeSlots.hide();
+      var $cloned = self.$timeSlots.detach();
+      $cloned.insertBefore($activeChoice).hide().fadeIn(800);
+
+      self.$timeSlots = $cloned;
+      self.$timeSlots.addClass('is-active');
+
+      $activeChoice.addClass('is-clicked');
+    },
+
     promoteSlot: function(slot) {
       var promoted = slot.closest('.SlotPicker-choice'),
           index = promoted.index('.SlotPicker-choice'),
           demoted = $('.SlotPicker-choice:eq(' + (index - 1) + ')'),
           h = promoted.find('.SlotPicker-choiceInner').height() + parseInt(promoted.find('.SlotPicker-choiceInner').css('padding-top')),
           self = this;
-      
+
       var promote = function() {
         self.shiftSlot(index);
         self.processSlots();
@@ -122,7 +139,7 @@
       var transition = function() {
         return Modernizr.csstransitions ? 300 : 0;
       };
-      
+
       promoted.find('.SlotPicker-choiceContent').css('top', -h + 'px');
       demoted.find('.SlotPicker-choiceContent').css('top', h + 'px');
 
@@ -146,7 +163,7 @@
 
     getMonthPositions: function(dates) {
       var months = [], lastMonth, day, month;
-      
+
       for (day in dates) {
         month = moj.Helpers.dateFromIso(day).getMonth();
         if (month !== lastMonth) {
@@ -219,7 +236,7 @@
       this.settings.bookableDates = $.map(slots, function(s) {
         return s.substr(0, 10);
       });
-      
+
       for (i = 0; i < slots.length; i++) {
         day = this.splitDateAndSlot(slots[i])[0];
 
@@ -236,7 +253,7 @@
 
         previous = day;
       }
-      
+
       this.settings.bookableTimes = days;
     },
 
@@ -246,14 +263,21 @@
       $('.SlotPicker-day', this.$_el).removeClass('is-active');
       this.$unbookableDays.find('.SlotPicker-dayTitle').text(this.dayLabel(moj.Helpers.dateFromIso(day.data('date')))); // filthy hack
       $(selector).addClass('is-active').focus();
+      this.$timeSlots.fadeIn(500);
 
       // scroll - bottom of selected day
       this.confirmVisibility($(selector), 'bottom');
     },
 
+    deselectDays: function() {
+      $('.SlotPicker-day', this.$_el).removeClass('is-active');
+      $('.BookingCalendar-date--bookable').removeClass('is-active');
+      this.$timeSlots.hide();
+    },
+
     chosenDaySelector: function(dateStr) {
       var bookingFrom, bookingTo, date;
-      
+
       if (moj.Helpers.dateBookable(dateStr, this.settings.bookableDates)) {
         return '#date-' + dateStr;
       }
@@ -261,7 +285,7 @@
       date = moj.Helpers.dateFromIso(dateStr);
       bookingFrom = moj.Helpers.dateFromIso(this.settings.bookableDates[0]);
       bookingTo = moj.Helpers.dateFromIso(this.settings.bookableDates[this.settings.bookableDates.length-1]);
-      
+
       if (date < this.settings.today) {
         return '.SlotPicker-day--past';
       } else {
@@ -320,7 +344,7 @@
           time = label.find('.SlotPicker-time').text(),
           duration = label.find('.SlotPicker-duration').text(),
           $slot = this.$choice.eq(index);
-      
+
       $slot.addClass('is-chosen');
       $slot.find('.SlotPicker-date').text(day);
       $slot.find('.SlotPicker-time').text(time + ', ' + duration);
@@ -331,7 +355,7 @@
     populateSlotInputs: function(index, chosen) {
       $('.SlotPicker-input', this.$_el).eq(index).val(chosen);
     },
-    
+
     processSlots: function() {
       var slots = this.settings.currentSlots,
           i, $slotEl;
@@ -363,7 +387,7 @@
     splitDateAndSlot: function(str) {
       var bits = str.split('-'),
           time = bits.splice(-2, 2).join('-');
-      
+
       return [bits.join('-'), time];
     },
 
@@ -371,6 +395,7 @@
       var index = this.settings.currentSlots.length;
       this.$choice.removeClass('is-active is-clicked');
       this.$choice.eq(index).addClass('is-active');
+      this.moveTimeSlotsToChoice();
     },
 
     checkSlot: function(el) {
@@ -388,7 +413,7 @@
 
     removeSlot: function(slot) {
       var pos = moj.Helpers.indexOf(this.settings.currentSlots, slot);
-      
+
       this.settings.currentSlots.splice(pos, 1);
       this.markDate(slot);
     },
@@ -399,7 +424,7 @@
 
     markDate: function(slot) {
       var day = this.splitDateAndSlot(slot)[0];
-      
+
       $('[data-date=' + day + ']', this.$_el)[~this.settings.currentSlots.join('-').indexOf(day) ? 'addClass' : 'removeClass']('is-chosen');
     },
 
@@ -469,7 +494,7 @@
           todayIso = moj.Helpers.formatIso(this.settings.today),
           end = moj.Helpers.dateFromIso(to),
           count = 1;
-      
+
       curDate = this.firstDayOfWeek(moj.Helpers.dateFromIso(from));
       end = this.lastDayOfWeek(this.lastDayOfMonth(end));
 
@@ -501,7 +526,7 @@
         curDate.setDate(curDate.getDate() + 1);
         count++;
       }
-      
+
       return out;
     },
 
@@ -529,14 +554,14 @@
       var out = '',
           diff = end.getTime() - start.getTime(),
           duration = new Date(diff);
-      
+
       if (duration.getUTCHours()) {
         out+= duration.getUTCHours() + ' hr';
         if (duration.getUTCHours() > 1) {
           out+= 's';
         }
       }
-      
+
       if (duration.getMinutes()) {
         out+= ' ' + duration.getMinutes() + ' min';
         if (duration.getMinutes() > 1) {
