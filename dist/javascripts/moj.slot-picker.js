@@ -70,6 +70,7 @@
         self.activateNextOption();
         self.disableCheckboxes(self.limitReached());
         self.togglePromoteHelp();
+        self.deselectDays();
       });
 
       this.$_el.on('click', '.SlotPicker-icon--remove', function(e) {
@@ -111,6 +112,21 @@
         var date = $(this).find('.SlotPicker-icon--remove').data('slot-option').attr('id').split('slot-')[1].substr(0, 10);
         $('.BookingCalendar-dateLink[data-date="' + date + '"]').click();
       });
+    },
+
+    moveTimeSlotsToChoice: function() {
+      var $activeChoice = $('.SlotPicker-choice.is-active');
+
+      if (!$activeChoice.length) { return; }
+
+      this.$timeSlots.hide();
+      var $cloned = this.$timeSlots.detach();
+      $cloned.insertBefore($activeChoice).hide().fadeIn(800);
+
+      this.$timeSlots = $cloned;
+      this.$timeSlots.addClass('is-active');
+
+      $activeChoice.addClass('is-clicked');
     },
 
     promoteSlot: function(slot) {
@@ -252,9 +268,16 @@
       $('.SlotPicker-day', this.$_el).removeClass('is-active');
       this.$unbookableDays.find('.SlotPicker-dayTitle').text(this.dayLabel(moj.Helpers.dateFromIso(day.data('date')))); // filthy hack
       $(selector).addClass('is-active').focus();
+      this.$timeSlots.fadeIn(500);
 
       // scroll - bottom of selected day
       this.confirmVisibility($(selector), 'bottom');
+    },
+
+    deselectDays: function() {
+      $('.SlotPicker-day', this.$_el).removeClass('is-active');
+      $('.BookingCalendar-date--bookable').removeClass('is-active');
+      this.$timeSlots.hide();
     },
 
     chosenDaySelector: function(dateStr) {
@@ -377,6 +400,7 @@
       var index = this.settings.currentSlots.length;
       this.$choice.removeClass('is-active is-clicked');
       this.$choice.eq(index).addClass('is-active');
+      this.moveTimeSlotsToChoice();
     },
 
     checkSlot: function(el) {
