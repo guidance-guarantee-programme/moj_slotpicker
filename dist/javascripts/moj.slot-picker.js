@@ -4,7 +4,6 @@
  * @link https://github.com/ministryofjustice/moj_slotpicker
  * @license OGL v2.0 - https://github.com/ministryofjustice/moj_slotpicker/blob/master/LICENCE.md
  */
-
 (function() {
   'use strict';
 
@@ -61,14 +60,16 @@
       var self = this;
 
       this.$_el.on('click', '.SlotPicker-slot', function() {
+
         $('.SlotPicker-choices', self.$_el).addClass('is-chosen');
         self.emptyUiSlots();
         self.emptySlotInputs();
         self.unHighlightSlots();
-        self.checkSlot($(this));
+        // this is a hack as the time slots are in the div above the current choice.
+        var currentSlotIndex = $('.SlotPicker-choices > div').index($(this).parents('.SlotPicker-timeSlots'));
+        self.checkSlot($(this), currentSlotIndex);
         self.processSlots();
         self.activateNextOption();
-        self.disableCheckboxes(self.limitReached());
         self.togglePromoteHelp();
         self.deselectDays();
       });
@@ -90,6 +91,9 @@
         self.selectDay($(this));
         self.highlightDate($(this));
         self.$timeSlots.addClass('is-active');
+
+        self.moveTimeSlotsToChoice();
+        self.disableSelectedSlots();
       });
 
       this.$_el.on('click', '.BookingCalendar-nav--next', function(e) {
@@ -110,13 +114,21 @@
 
       this.$_el.on('click', '.SlotPicker-choice.is-chosen', function() {
         var date = $(this).find('.SlotPicker-icon--remove').data('slot-option').attr('id').split('slot-')[1].substr(0, 10);
-        $('.BookingCalendar-dateLink[data-date="' + date + '"]').click();
+        var $calendarEl = $('.BookingCalendar-dateLink[data-date="' + date + '"]');
+        self.selectDay($calendarEl);
+        self.highlightDate($calendarEl);
+        self.$timeSlots.addClass($calendarEl);
+
+        self.moveTimeSlotsToChoice(this);
+        self.disableSelectedSlots(this);
       });
     },
 
-    moveTimeSlotsToChoice: function() {
+    moveTimeSlotsToChoice: function(clickedChoice) {
       var self = this;
-      var $activeChoice = $('.SlotPicker-choice.is-active');
+      var $activeChoice;
+
+      $activeChoice = $(clickedChoice || '.SlotPicker-choice.is-active');
 
       if (!$activeChoice.length) { return; }
 
@@ -132,10 +144,10 @@
 
     promoteSlot: function(slot) {
       var promoted = slot.closest('.SlotPicker-choice'),
-          index = promoted.index('.SlotPicker-choice'),
-          demoted = $('.SlotPicker-choice:eq(' + (index - 1) + ')'),
-          h = promoted.find('.SlotPicker-choiceInner').height() + parseInt(promoted.find('.SlotPicker-choiceInner').css('padding-top')),
-          self = this;
+        index = promoted.index('.SlotPicker-choice'),
+        demoted = $('.SlotPicker-choice:eq(' + (index - 1) + ')'),
+        h = promoted.find('.SlotPicker-choiceInner').height() + parseInt(promoted.find('.SlotPicker-choiceInner').css('padding-top')),
+        self = this;
 
       var promote = function() {
         self.shiftSlot(index);
@@ -154,10 +166,10 @@
 
     renderElements: function() {
       var len = this.settings.bookableDates.length,
-          from = this.settings.bookableDates[0],
-          to = this.settings.bookableDates[len-1],
-          $beyond = $('.SlotPicker-day--beyond'),
-          tomorrow = new Date(this.settings.today.getTime());
+        from = this.settings.bookableDates[0],
+        to = this.settings.bookableDates[len-1],
+        $beyond = $('.SlotPicker-day--beyond'),
+        tomorrow = new Date(this.settings.today.getTime());
 
       tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -186,7 +198,7 @@
 
     updateNav: function(i) {
       var prev = $('.BookingCalendar-nav--prev', this.$_el),
-          next = $('.BookingCalendar-nav--next', this.$_el);
+        next = $('.BookingCalendar-nav--next', this.$_el);
 
       if (i > 0) {
         prev.addClass('is-active');
@@ -346,10 +358,10 @@
 
     populateUiSlots: function(index, checkbox) {
       var label = checkbox.closest('.SlotPicker-label'),
-          day = label.siblings('.SlotPicker-dayTitle').text(),
-          time = label.find('.SlotPicker-time').text(),
-          duration = label.find('.SlotPicker-duration').text(),
-          $slot = this.$choice.eq(index);
+        day = label.siblings('.SlotPicker-dayTitle').text(),
+        time = label.find('.SlotPicker-time').text(),
+        duration = label.find('.SlotPicker-duration').text(),
+        $slot = this.$choice.eq(index);
 
       $slot.addClass('is-chosen');
       $slot.find('.SlotPicker-date').text(day);
@@ -364,7 +376,7 @@
 
     processSlots: function() {
       var slots = this.settings.currentSlots,
-          i, $slotEl;
+        i, $slotEl;
 
       for (i = 0; i < slots.length; i++) {
         $slotEl = $('.SlotPicker-slot[value=' + slots[i] + ']', this.$_el);
@@ -380,19 +392,34 @@
       }
     },
 
-    limitReached: function() {
-      return $('.SlotPicker-slot:checked', this.$_el).length >= this.settings.optionLimit;
-    },
+    disableSelectedSlots: function(clickedChoice) {
+      var currentSlot;
+      if(clickedChoice) {
+        var index = $('.SlotPicker-choice').index(clickedChoice);
+        currentSlot = this.settings.currentSlots[index];
+      }
 
-    disableCheckboxes: function(disable) {
-      $('.SlotPicker-slot', this.$_el).not(':checked')
-        .prop('disabled', disable)
-        .closest('label')[disable ? 'addClass' : 'removeClass']('is-disabled');
+      $('input:checked:disabled').prop('disabled', false);
+
+      var currentSlots = this.settings.currentSlots;
+      // .is-active = when timeslots are visible
+      // .SlotPicker-day.is-active = for the currently selected day
+      var selectedOptions = this.$timeSlots.find('.SlotPicker-day.is-active input:checked');
+
+      $.each(selectedOptions, function(i, option) {
+        var slot = $(option).val();
+        if(currentSlots.indexOf(slot) >= 0) {
+          var disable = slot !== currentSlot;
+          $(option)
+            .prop('disabled', disable)
+            .closest('label')[disable ? 'addClass' : 'removeClass']('is-disabled');
+        }
+      });
     },
 
     splitDateAndSlot: function(str) {
       var bits = str.split('-'),
-          time = bits.splice(-2, 2).join('-');
+        time = bits.splice(-2, 2).join('-');
 
       return [bits.join('-'), time];
     },
@@ -402,19 +429,26 @@
       this.$choice.removeClass('is-active is-clicked');
       this.$choice.eq(index).addClass('is-active');
       this.moveTimeSlotsToChoice();
+      $('input:checked:disabled').prop('disabled', false);
     },
 
-    checkSlot: function(el) {
+    checkSlot: function(el, currentSlotIndex) {
       if (el.is(':checked')) {
-        this.addSlot(el.val());
+        this.addOrUpdateSlot(el.val(), currentSlotIndex);
       } else {
         this.removeSlot(el.val());
       }
     },
 
-    addSlot: function(slot) {
-      this.settings.currentSlots.push(slot);
-      this.markDate(slot);
+    addOrUpdateSlot: function(slot, currentSlotIndex) {
+      if(this.settings.currentSlots[currentSlotIndex]) {
+        var old_value = this.settings.currentSlots[currentSlotIndex];
+        $('.SlotPicker-slot[value=' + old_value + ']').prop('checked', false);
+        this.settings.currentSlots[currentSlotIndex] = slot;
+      } else {
+        this.settings.currentSlots.push(slot);
+        this.markDate(slot);
+      }
     },
 
     removeSlot: function(slot) {
@@ -447,7 +481,7 @@
 
     buildTimeSlots: function(date, slots) {
       var template = moj.Helpers.getTemplate('#SlotPicker-tmplTimeSlot'),
-          i, out = '';
+        i, out = '';
 
       for (i = 0; i < slots.length; i++) {
         out+= template({
@@ -462,8 +496,8 @@
 
     buildDays: function() {
       var template = moj.Helpers.getTemplate('#SlotPicker-tmplDay'),
-          day, out = '', date,
-          slots = this.settings.bookableTimes;
+        day, out = '', date,
+        slots = this.settings.bookableTimes;
 
       for (day in slots) {
         date = moj.Helpers.dateFromIso(day);
@@ -480,8 +514,8 @@
 
     buildChoices: function() {
       var template = moj.Helpers.getTemplate('#SlotPicker-tmplChoice'),
-          i, out = '',
-          opts = this.settings.optionLimit;
+        i, out = '',
+        opts = this.settings.optionLimit;
 
       for (i = 1; i <= opts; i++) {
         out+= template({
@@ -495,11 +529,11 @@
 
     buildDates: function(from, to) {
       var templateRow = moj.Helpers.getTemplate('#BookingCalendar-tmplRow'),
-          templateDate = moj.Helpers.getTemplate('#BookingCalendar-tmplDate'),
-          out = '', row = '', curDate, curIso,
-          todayIso = moj.Helpers.formatIso(this.settings.today),
-          end = moj.Helpers.dateFromIso(to),
-          count = 1;
+        templateDate = moj.Helpers.getTemplate('#BookingCalendar-tmplDate'),
+        out = '', row = '', curDate, curIso,
+        todayIso = moj.Helpers.formatIso(this.settings.today),
+        end = moj.Helpers.dateFromIso(to),
+        count = 1;
 
       curDate = this.firstDayOfWeek(moj.Helpers.dateFromIso(from));
       end = this.lastDayOfWeek(this.lastDayOfMonth(end));
@@ -538,8 +572,8 @@
 
     displayTime: function(time) {
       var hrs = parseInt(time.substr(0, 2), 10),
-          mins = time.substr(2),
-          out = hrs;
+        mins = time.substr(2),
+        out = hrs;
 
       if (hrs > 12) {
         out-= 12;
@@ -558,8 +592,8 @@
 
     duration: function(start, end) {
       var out = '',
-          diff = end.getTime() - start.getTime(),
-          duration = new Date(diff);
+        diff = end.getTime() - start.getTime(),
+        duration = new Date(diff);
 
       if (duration.getUTCHours()) {
         out+= duration.getUTCHours() + ' hr';
@@ -589,14 +623,14 @@
 
     firstDayOfWeek: function(date) {
       var day = date.getDay(),
-          diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        diff = date.getDate() - day + (day === 0 ? -6 : 1);
 
       return new Date(date.setDate(diff));
     },
 
     lastDayOfWeek: function(date) {
       var day = date.getDay(),
-          diff = date.getDate() + (day ? 7 - day : 0);
+        diff = date.getDate() + (day ? 7 - day : 0);
 
       return new Date(date.setDate(diff));
     },
@@ -647,7 +681,7 @@
 
   moj.Helpers.getTemplate = function(selector) {
     var $template = $(selector),
-        compiled;
+      compiled;
 
     if ($template.length) {
       compiled = Handlebars.compile($template.html());

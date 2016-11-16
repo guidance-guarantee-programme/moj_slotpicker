@@ -67,6 +67,8 @@
   &.is-disabled
     color: $grey-2
     background-image: url("images/tick_disabled.png")
+  &.is-active.is-disabled
+    background-image: url("images/tick_on_disabled.png")
 
   &:last-child
     margin-right: 0
@@ -119,7 +121,7 @@
       margin-left: 45px
       padding-left: 10%
       padding-right: 10%
-  
+
   &.is-clicked .SlotPicker-prompt
     display: block
 

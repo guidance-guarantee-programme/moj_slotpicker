@@ -300,6 +300,8 @@ a.BookingCalendar-nav--next {
   .SlotPicker-label.is-disabled {
     color: #bfc1c3;
     background-image: image-url("images/tick_disabled.png"); }
+  .SlotPicker-label.is-active.is-disabled {
+    background-image: image-url("images/tick_on_disabled.png"); }
   .SlotPicker-label:last-child {
     margin-right: 0;
     margin-bottom: 0; }
