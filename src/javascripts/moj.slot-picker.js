@@ -62,15 +62,19 @@
         self.checkSlot($(this));
         self.processSlots();
         self.activateNextOption();
-        self.disableCheckboxes(self.limitReached());
         self.togglePromoteHelp();
         self.deselectDays();
+
+        var disable = $(this).prop('checked');
+        $(this)
+          .prop('disabled', disable)
+          .closest('label')[disable ? 'addClass' : 'removeClass']('is-selected');
       });
 
       this.$_el.on('click', '.SlotPicker-icon--remove', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        $($(this).data('slot-option')).click();
+        $($(this).data('slot-option')).prop('disabled', false).click();
       });
 
       this.$_el.on('click', '.SlotPicker-icon--promote', function(e) {
@@ -81,6 +85,13 @@
 
       this.$_el.on('click chosen', '.BookingCalendar-dateLink, .DateSlider-largeDates li', function(e) {
         e.preventDefault();
+        if (self.limitReached()) {
+          var errorMessage = self.$_el.data('limit-exceeded-error');
+          if (errorMessage) {
+            alert(errorMessage);
+          }
+          return;
+        }
         self.selectDay($(this));
         self.highlightDate($(this));
         self.$timeSlots.addClass('is-active');
@@ -101,17 +112,14 @@
         // scroll - top of DateSlider
         self.confirmVisibility($('.DateSlider').first(), 'top');
       });
-
-      this.$_el.on('click', '.SlotPicker-choice.is-chosen', function() {
-        var date = $(this).find('.SlotPicker-icon--remove').data('slot-option').attr('id').split('slot-')[1].substr(0, 10);
-        $('.BookingCalendar-dateLink[data-date="' + date + '"]').click();
-      });
     },
 
     moveTimeSlotsToChoice: function() {
       var $activeChoice = $('.SlotPicker-choice.is-active');
 
-      if (!$activeChoice.length) { return; }
+      if (!$activeChoice.length) {
+        return;
+      }
 
       this.$timeSlots.hide();
       var $cloned = this.$timeSlots.detach();
@@ -375,12 +383,6 @@
 
     limitReached: function() {
       return $('.SlotPicker-slot:checked', this.$_el).length >= this.settings.optionLimit;
-    },
-
-    disableCheckboxes: function(disable) {
-      $('.SlotPicker-slot', this.$_el).not(':checked')
-        .prop('disabled', disable)
-        .closest('label')[disable ? 'addClass' : 'removeClass']('is-disabled');
     },
 
     splitDateAndSlot: function(str) {
