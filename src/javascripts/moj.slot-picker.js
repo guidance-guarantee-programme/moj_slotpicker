@@ -62,14 +62,19 @@
         self.checkSlot($(this));
         self.processSlots();
         self.activateNextOption();
-        self.disableCheckboxes(self.limitReached());
         self.togglePromoteHelp();
+        self.deselectDays();
+
+        var disable = $(this).prop('checked');
+        $(this)
+          .prop('disabled', disable)
+          .closest('label')[disable ? 'addClass' : 'removeClass']('is-selected');
       });
 
       this.$_el.on('click', '.SlotPicker-icon--remove', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        $($(this).data('slot-option')).click();
+        $($(this).data('slot-option')).prop('disabled', false).click();
       });
 
       this.$_el.on('click', '.SlotPicker-icon--promote', function(e) {
@@ -80,6 +85,13 @@
 
       this.$_el.on('click chosen', '.BookingCalendar-dateLink, .DateSlider-largeDates li', function(e) {
         e.preventDefault();
+        if (self.limitReached()) {
+          var errorMessage = self.$_el.data('limit-exceeded-error');
+          if (errorMessage) {
+            alert(errorMessage);
+          }
+          return;
+        }
         self.selectDay($(this));
         self.highlightDate($(this));
         self.$timeSlots.addClass('is-active');
@@ -100,11 +112,23 @@
         // scroll - top of DateSlider
         self.confirmVisibility($('.DateSlider').first(), 'top');
       });
+    },
 
-      this.$_el.on('click', '.SlotPicker-choice.is-chosen', function() {
-        var date = $(this).find('.SlotPicker-icon--remove').data('slot-option').attr('id').split('slot-')[1].substr(0, 10);
-        $('.BookingCalendar-dateLink[data-date="' + date + '"]').click();
-      });
+    moveTimeSlotsToChoice: function() {
+      var $activeChoice = $('.SlotPicker-choice.is-active');
+
+      if (!$activeChoice.length) {
+        return;
+      }
+
+      this.$timeSlots.hide();
+      var $cloned = this.$timeSlots.detach();
+      $cloned.insertBefore($activeChoice).hide().fadeIn(800);
+
+      this.$timeSlots = $cloned;
+      this.$timeSlots.addClass('is-active');
+
+      $activeChoice.addClass('is-clicked');
     },
 
     promoteSlot: function(slot) {
@@ -246,9 +270,16 @@
       $('.SlotPicker-day', this.$_el).removeClass('is-active');
       this.$unbookableDays.find('.SlotPicker-dayTitle').text(this.dayLabel(moj.Helpers.dateFromIso(day.data('date')))); // filthy hack
       $(selector).addClass('is-active').focus();
+      this.$timeSlots.fadeIn(500);
 
       // scroll - bottom of selected day
       this.confirmVisibility($(selector), 'bottom');
+    },
+
+    deselectDays: function() {
+      $('.SlotPicker-day', this.$_el).removeClass('is-active');
+      $('.BookingCalendar-date--bookable').removeClass('is-active');
+      this.$timeSlots.hide();
     },
 
     chosenDaySelector: function(dateStr) {
@@ -354,12 +385,6 @@
       return $('.SlotPicker-slot:checked', this.$_el).length >= this.settings.optionLimit;
     },
 
-    disableCheckboxes: function(disable) {
-      $('.SlotPicker-slot', this.$_el).not(':checked')
-        .prop('disabled', disable)
-        .closest('label')[disable ? 'addClass' : 'removeClass']('is-disabled');
-    },
-
     splitDateAndSlot: function(str) {
       var bits = str.split('-'),
           time = bits.splice(-2, 2).join('-');
@@ -371,6 +396,7 @@
       var index = this.settings.currentSlots.length;
       this.$choice.removeClass('is-active is-clicked');
       this.$choice.eq(index).addClass('is-active');
+      this.moveTimeSlotsToChoice();
     },
 
     checkSlot: function(el) {

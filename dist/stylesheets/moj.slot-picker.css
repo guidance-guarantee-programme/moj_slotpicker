@@ -297,9 +297,9 @@ a.BookingCalendar-nav--next {
         background-color: #d5e8f3; } }
   .SlotPicker-label.is-active {
     background-image: url("images/tick_on.png"); }
-  .SlotPicker-label.is-disabled {
+  .SlotPicker-label.is-selected {
     color: #bfc1c3;
-    background-image: url("images/tick_disabled.png"); }
+    background-image: url("images/tick_on_disabled.png"); }
   .SlotPicker-label:last-child {
     margin-right: 0;
     margin-bottom: 0; }
